@@ -23,5 +23,8 @@ $migrationLib = $opts['javalib'];
 
 $migrate = new GitMigrate($rootDir, $authorsFile, $svnUrl, $migrationLib);
 foreach ($items as $path => $item) {
+    if (is_int($path)) {
+        $path = null;
+    }
     $migrate->process($item, $path);
 }
