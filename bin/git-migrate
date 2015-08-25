@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+require_once dirname(__FILE__) . '/../src/GitMigrate.php';
+
+use PhillipsData\GitMigrate\GitMigrate;
+
+$opts = getopt(
+    null,
+    array(
+        'items:',
+        'dir:',
+        'authors:',
+        'url:',
+        'javalib:'
+    )
+);
+
+$items = require $opts['items'];
+$rootDir = $opts['dir'];
+$authorsFile = $opts['authors'];
+$svnUrl = $opts['url'];
+$migrationLib = $opts['javalib'];
+
+$migrate = new GitMigrate($rootDir, $authorsFile, $svnUrl, $migrationLib);
+foreach ($items as $path => $item) {
+    $migrate->process($item, $path);
+}
