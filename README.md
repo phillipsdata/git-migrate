@@ -47,14 +47,14 @@ return [
 ### 3. Run the migration
 
 ```sh
-vendor/bin/git-migrate --items ./items.php --dir ./ --authors ./authors.txt --url svn://svn.yourdomain.com --javalib ./svn-migration-scripts.jar > output.out
+vendor/bin/git-migrate --items ./items.php --dir /path/to/ --authors /path/to/authors.txt --url svn://svn.yourdomain.com --javalib /path/to/svn-migration-scripts.jar > output.out
 ```
 
 
 ## Options
 
 - **items** The path to your items config.
-- **dir** The path where the Git repositories should be created. Use `./` for the current directory.
-- **authors** The path to the authors file. See [Atlassian's migration guide](https://www.atlassian.com/git/tutorials/migrating-prepare).
+- **dir** The full system path where the Git repositories should be created.
+- **authors** The full system path to the authors file. See [Atlassian's migration guide](https://www.atlassian.com/git/tutorials/migrating-prepare).
 - **url** The URL to your SVN repository.
-- **javalib** The path to [Atlassian's svn-migration-scripts.jar](https://bitbucket.org/atlassian/svn-migration-scripts/downloads) file.
+- **javalib** The fully system path to [Atlassian's svn-migration-scripts.jar](https://bitbucket.org/atlassian/svn-migration-scripts/downloads) file.
