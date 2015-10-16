@@ -11,7 +11,8 @@ $defaults = array(
     'url' => null,
     'javalib' => null
 );
-$opts = array_merge($defaults,
+$opts = array_merge(
+    $defaults,
     getopt(
         null,
         array(
