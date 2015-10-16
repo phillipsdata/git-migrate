@@ -4,19 +4,31 @@ require_once dirname(__FILE__) . '/../src/GitMigrate.php';
 
 use PhillipsData\GitMigrate\GitMigrate;
 
-$opts = getopt(
-    null,
-    array(
-        'items:',
-        'dir:',
-        'authors:',
-        'url:',
-        'javalib:',
-        'sync::'
+$defaults = array(
+    'items' => null,
+    'dir' => null,
+    'authors' => null,
+    'url' => null,
+    'javalib' => null
+);
+$opts = array_merge($defaults,
+    getopt(
+        null,
+        array(
+            'items:',
+            'dir:',
+            'authors:',
+            'url:',
+            'javalib:',
+            'sync::'
+        )
     )
 );
 
-$items = require $opts['items'];
+$items = array();
+if (file_exists($opts['items'])) {
+    $items = require $opts['items'];
+}
 
 $migrate = new GitMigrate(
     $opts['dir'],
@@ -31,7 +43,7 @@ foreach ($items as $path => $item) {
     $migrate->process(
         $item,
         $path,
-        !empty($opts['sync'])
+        array_key_exists('sync', $opts)
         ? 'sync'
         : 'clone'
     );
