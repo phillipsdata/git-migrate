@@ -27,7 +27,7 @@ class GitMigrate
     {
         $this->rootDir = $rootDir;
         $this->authorsFile = $authorsFile;
-        $this->svnUrl = $svnUrl;
+        $this->svnUrl =  rtrim($svnUrl, '/') . '/';
         $this->migrationLib = $migrationLib;
     }
 
@@ -36,8 +36,9 @@ class GitMigrate
      *
      * @param string $dir The directory to process
      * @param string $path The path to this directory
+     * @param string $action 'clone' or 'sync'
      */
-    public function process($dir, $path = null)
+    public function process($dir, $path = null, $action = 'clone')
     {
         if (is_array($dir)) {
             foreach ($dir as $subdir => $item) {
@@ -62,20 +63,84 @@ class GitMigrate
 
         fwrite(STDOUT, sprintf("\n----------\nProcessing %s...\n", $dir));
 
-        $clone = sprintf(
-            'git svn clone --stdlayout --authors-file=%s %s %s',
-            escapeshellarg($this->authorsFile),
-            escapeshellarg($this->svnUrl . str_replace('\\', '/', $path) . $dir),
-            escapeshellarg($dir)
+        if ('clone' === $action) {
+            $this->cloneRepo($fullPath);
+        } elseif ('sync' === $action) {
+            $this->syncRepo($fullPath);
+        }
+        $this->cleanup($dir);
+    }
+
+    /**
+     * Clone an SVN repo into a git repo
+     *
+     * @param string $dir The directory to execute the command under
+     * @return int The return status of executing the command
+     */
+    protected function cloneRepo($dir)
+    {
+        $status = 0;
+        chdir($dir);
+
+        system(
+            sprintf(
+                'git svn clone --stdlayout --authors-file=%s %s %s',
+                escapeshellarg($this->authorsFile),
+                escapeshellarg($this->svnUrl . str_replace('\\', '/', $path) . $dir),
+                escapeshellarg($dir)
+            ),
+            $status
         );
-        $cleanup = sprintf(
-            'java -Dfile.encoding=utf-8 -jar %s clean-git --force',
-            escapeshellarg($this->migrationLib)
+        return $status;
+    }
+
+    /**
+     * Sync the git repo with its SVN equivalent
+     *
+     * @param string $dir The directory to execute the command under
+     * @return int The return status of executing the command
+     */
+    protected function syncRepo($dir)
+    {
+        $status = 0;
+        chdir($dir);
+
+        system(
+            sprintf(
+                'git svn fetch --authors-file=%s',
+                escapeshellarg($this->authorsFile)
+            ),
+            $status
         );
 
-        chdir($fullPath);
-        system($clone);
+        system(
+            sprintf(
+                'java -Dfile.encoding=utf-8 -jar %s sync-rebase',
+                escapeshellarg($this->migrationLib)
+            ),
+            $status
+        );
+        return $status;
+    }
+
+    /**
+     * Cleanup tags and branches in the git repo
+     *
+     * @param string $dir The directory to execute the command under
+     * @return int The return status of executing the command
+     */
+    protected function cleanup($dir)
+    {
+        $status = 0;
         chdir($dir);
-        system($cleanup);
+
+        system(
+            sprintf(
+                'java -Dfile.encoding=utf-8 -jar %s clean-git --force',
+                escapeshellarg($this->migrationLib)
+            ),
+            $status
+        );
+        return $status;
     }
 }

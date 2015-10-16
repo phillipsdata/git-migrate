@@ -11,20 +11,28 @@ $opts = getopt(
         'dir:',
         'authors:',
         'url:',
-        'javalib:'
+        'javalib:',
+        'sync::'
     )
 );
 
 $items = require $opts['items'];
-$rootDir = $opts['dir'];
-$authorsFile = $opts['authors'];
-$svnUrl = $opts['url'];
-$migrationLib = $opts['javalib'];
 
-$migrate = new GitMigrate($rootDir, $authorsFile, $svnUrl, $migrationLib);
+$migrate = new GitMigrate(
+    $opts['dir'],
+    $opts['authors'],
+    $opts['url'],
+    $opts['javalib']
+);
 foreach ($items as $path => $item) {
     if (is_int($path)) {
         $path = null;
     }
-    $migrate->process($item, $path);
+    $migrate->process(
+        $item,
+        $path,
+        !empty($opts['sync'])
+        ? 'sync'
+        : 'clone'
+    );
 }
