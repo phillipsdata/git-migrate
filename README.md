@@ -72,7 +72,7 @@ for your main repository separately from your externals.
 
 ```sh
 vendor/bin/git-migrate
-  --items ./items.php
+  --items /path/to/items.php
   --dir /path/to/
   --authors /path/to/authors.txt
   --url svn://svn.yourdomain.com/
@@ -88,7 +88,7 @@ arguments as you would for an initial migration, but append the **--sync** flag.
 
 ```sh
 vendor/bin/git-migrate
-  --items ./items.php
+  --items /path/to/items.php
   --dir /path/to/
   --authors /path/to/authors.txt
   --url svn://svn.yourdomain.com/
@@ -102,5 +102,5 @@ vendor/bin/git-migrate
 - **dir** The full system path where the Git repositories should be created.
 - **authors** The full system path to the authors file. See [Atlassian's migration guide](https://www.atlassian.com/git/tutorials/migrating-prepare).
 - **url** The URL to your SVN repository.
-- **javalib** The fully system path to [Atlassian's svn-migration-scripts.jar](https://bitbucket.org/atlassian/svn-migration-scripts/downloads) file.
+- **javalib** The full system path to [Atlassian's svn-migration-scripts.jar](https://bitbucket.org/atlassian/svn-migration-scripts/downloads) file.
 - **sync** Set if you need to update an existing Git repository it with commits from the SVN repository

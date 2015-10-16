@@ -64,7 +64,7 @@ class GitMigrate
         fwrite(STDOUT, sprintf("\n----------\nProcessing %s...\n", $dir));
 
         if ('clone' === $action) {
-            $this->cloneRepo($fullPath, $path);
+            $this->cloneRepo($fullPath, $dir, $path);
         } elseif ('sync' === $action) {
             $this->syncRepo($fullPath);
         }
@@ -75,10 +75,11 @@ class GitMigrate
      * Clone an SVN repo into a git repo
      *
      * @param string $dir The directory to execute the command under
-     * @param string $path The path within the SVN Url to clone from
+     * @param string $subdir The subdirectory to use for the repository
+     * @param string $path The path within the SVN URL to clone from
      * @return int The return status of executing the command
      */
-    protected function cloneRepo($dir, $path = null)
+    protected function cloneRepo($dir, $subdir, $path = null)
     {
         $status = 0;
         chdir($dir);
@@ -87,8 +88,8 @@ class GitMigrate
             sprintf(
                 'git svn clone --stdlayout --authors-file=%s %s %s',
                 escapeshellarg($this->authorsFile),
-                escapeshellarg($this->svnUrl . str_replace('\\', '/', $path) . $dir),
-                escapeshellarg($dir)
+                escapeshellarg($this->svnUrl . str_replace('\\', '/', $path) . $subdir),
+                escapeshellarg($subdir)
             ),
             $status
         );
