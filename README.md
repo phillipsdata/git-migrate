@@ -20,6 +20,8 @@ when you have many externals grouped under a single SVN URL.
 If you don't already have git installed, [install it](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
 Then make sure it can be executed via `git`.
 
+You'll also need to ensure you have a somewhat modern version of java as well.
+
 ### 1. Install via composer
 
 ```sh
@@ -61,10 +63,38 @@ return [
 
 ### 3. Run the migration
 
+This will create a Git repository from your SVN repository, cloning your trunk,
+branches, and tags.
+
+Keep in mind that if you're migrating externals that exist in some sub-directory
+you'll need to adjust the **url** accordingly. I suggest running the migration
+for your main repository separately from your externals.
+
 ```sh
-vendor/bin/git-migrate --items ./items.php --dir /path/to/ --authors /path/to/authors.txt --url svn://svn.yourdomain.com --javalib /path/to/svn-migration-scripts.jar
+vendor/bin/git-migrate
+  --items /path/to/items.php
+  --dir /path/to/
+  --authors /path/to/authors.txt
+  --url svn://svn.yourdomain.com/
+  --javalib /path/to/svn-migration-scripts.jar
 ```
 
+### 4. Keeping it in sync
+
+While you're making the transition from SVN to Git, you'll only be able to make
+commits to your SVN repository, so you'll need some way to keep the repositories
+in sync. You can do this with the **--sync** flag. You supply all of the same
+arguments as you would for an initial migration, but append the **--sync** flag.
+
+```sh
+vendor/bin/git-migrate
+  --items /path/to/items.php
+  --dir /path/to/
+  --authors /path/to/authors.txt
+  --url svn://svn.yourdomain.com/
+  --javalib /path/to/svn-migration-scripts.jar
+  --sync
+```
 
 ## Options
 
@@ -72,4 +102,5 @@ vendor/bin/git-migrate --items ./items.php --dir /path/to/ --authors /path/to/au
 - **dir** The full system path where the Git repositories should be created.
 - **authors** The full system path to the authors file. See [Atlassian's migration guide](https://www.atlassian.com/git/tutorials/migrating-prepare).
 - **url** The URL to your SVN repository.
-- **javalib** The fully system path to [Atlassian's svn-migration-scripts.jar](https://bitbucket.org/atlassian/svn-migration-scripts/downloads) file.
+- **javalib** The full system path to [Atlassian's svn-migration-scripts.jar](https://bitbucket.org/atlassian/svn-migration-scripts/downloads) file.
+- **sync** Set if you need to update an existing Git repository it with commits from the SVN repository
