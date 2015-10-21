@@ -1,0 +1,15 @@
+{
+    "repositories": [
+        {
+            "path": "uri/to/repo1",
+            "origin": "https://domain.com/repo1.git"
+        },
+        {
+            "path": "uri/to/repo2"
+        }
+    ],
+    "authors": "/path/to/authors.txt",
+    "dir": "/root/",
+    "javalib": "/path/to/svn-migration-scripts.jar",
+    "url": "svn://svn.domain.com/"
+}

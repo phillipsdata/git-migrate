@@ -1,6 +1,8 @@
 <?php
 namespace PhillipsData\GitMigrate;
 
+use InvalidArgumentException;
+
 /**
  * Migrates a repo from SVN to git with the help of Atlassian's migration script
  * according to https://www.atlassian.com/git/tutorials/migrating-convert
@@ -10,10 +12,26 @@ namespace PhillipsData\GitMigrate;
  */
 class GitMigrate
 {
+    /**
+     * @var string
+     */
     protected $rootDir;
+    /**
+     * @var string
+     */
     protected $authorsFile;
+    /**
+     * @var string
+     */
     protected $svnUrl;
+    /**
+     * @var string
+     */
     protected $migrationLib;
+    /**
+     * @var \PhillipsData\GitMigrate\ActionFactory
+     */
+    protected $actionFactory;
 
     /**
      * Initialize
@@ -32,117 +50,211 @@ class GitMigrate
     }
 
     /**
+     * Set the ActionFactory to use
+     *
+     * @param \PhillipsData\GitMigrate\ActionFactory $factory
+     */
+    public function setActionFactory(ActionFactory $factory)
+    {
+        $this->actionFactory = $factory;
+    }
+
+    /**
+     * Fetches the ActionFactory in use
+     *
+     * @return \PhillipsData\GitMigrate\ActionFactory
+     */
+    public function getActionFactory()
+    {
+        if (null === $this->actionFactory) {
+            $this->actionFactory = new ActionFactory();
+        }
+        return $this->actionFactory;
+    }
+
+    /**
+     * Processes the given repositories
+     *
+     * @param array $repos The repositories to process
+     * @param string $action The action to perform on the repos
+     * @throws InvalidArgumentException
+     */
+    public function processRepositories(array $repos, $action = 'clone')
+    {
+        foreach ($repos as $repo) {
+            $fullPath = $this->rootDir . DIRECTORY_SEPARATOR . $repo->path;
+            if (!$this->createDir($fullPath)) {
+                continue;
+            }
+
+            switch ($action) {
+                case 'clone':
+                    $this->cloneRepo(
+                        $fullPath,
+                        $repo->path,
+                        $this->authorsFile,
+                        $this->migrationLib,
+                        $this->svnUrl
+                    );
+                    break;
+                case 'sync':
+                    $this->syncRepo(
+                        $fullPath,
+                        $repo->path,
+                        $this->authorsFile,
+                        $this->migrationLib
+                    );
+                    break;
+                case 'push':
+                    $this->pushRepo(
+                        $fullPath,
+                        !empty($repo->origin)
+                        ? $repo->origin
+                        : null
+                    );
+                    break;
+                default:
+                    throw new InvalidArgumentException(
+                        sprintf("'%s' is not a valid action.", $action)
+                    );
+            }
+        }
+    }
+
+    /**
+     * Clone the repository
+     *
+     * @param string $dir
+     * @param string $path
+     * @param string $authorsFile
+     * @param string $migrationLib
+     * @param string $svnUrl
+     */
+    private function cloneRepo($dir, $path, $authorsFile, $migrationLib, $svnUrl)
+    {
+        $clone = $this->getActionFactory()->create('CloneRepo');
+        $clone->setDir($dir)
+            ->setAuthorsFile($this->authorsFile)
+            ->setSvnUrl($this->svnUrl)
+            ->setPath($path)
+            ->process();
+
+        $this->cleanupRepo($dir, $migrationLib);
+    }
+
+    /**
+     * Sync the repository
+     *
+     * @param string $dir
+     * @param string $path
+     * @param string $authorsFile
+     * @param string $migrationLib
+     */
+    private function syncRepo($dir, $path, $authorsFile, $migrationLib)
+    {
+        $sync = $this->getActionFactory()->create('SyncRepo');
+        $sync->setDir($dir)
+            ->setAuthorsFile($this->authorsFile)
+            ->setMigrationLib($this->migrationLib)
+            ->process();
+
+        $this->cleanupRepo($dir, $migrationLib);
+    }
+
+    /**
+     * Push the repo to the remote origin
+     *
+     * @param string $dir
+     * @param string $originUrl
+     */
+    private function pushRepo($dir, $originUrl)
+    {
+        $push = $this->getActionFactory()->create('PushRepo');
+        $push->setDir($dir)
+            ->setOrigin($originUrl)
+            ->process();
+    }
+
+    /**
+     * Cleanup the repository
+     *
+     * @param string $dir
+     * @param string $migrationLib
+     */
+    private function cleanupRepo($dir, $migrationLib)
+    {
+        $cleanup = $this->getActionFactory()->create('CleanupRepo');
+        $cleanup->setDir($dir)
+            ->setMigrationLib($migrationLib)
+            ->process();
+    }
+
+    /**
      * Process the directory
      *
      * @param string $dir The directory to process
      * @param string $path The path to this directory
      * @param string $action 'clone' or 'sync'
+     * @deprecated since 1.2.0
      */
     public function process($dir, $path = null, $action = 'clone')
     {
-        if (is_array($dir)) {
-            foreach ($dir as $subdir => $item) {
-                if (is_int($subdir)) {
-                    $subdir = null;
-                }
-                $this->process($item, $path . DIRECTORY_SEPARATOR . $subdir);
+        $repos = [];
+        $this->convertToRepos($dir, $path, $repos);
+        $this->processRepositories($repos, $action);
+    }
+
+    /**
+     * Convert item array paths to repositories
+     *
+     * @param array|string $dir
+     * @param string $path
+     * @param array $repos
+     * @return object|null
+     */
+    public function convertToRepos($dir, $path, array &$repos)
+    {
+        $baseDir = trim($path) === ''
+            ? null
+            : rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
+        if (!is_array($dir)) {
+            return (object) ['path' => $baseDir . $dir];
+        }
+
+        foreach ($dir as $subdir => $item) {
+            if (is_int($subdir)) {
+                $subdir = null;
             }
-            return;
-        }
+            $repo = $this->convertToRepos(
+                $item,
+                $baseDir . $subdir,
+                $repos
+            );
 
-        $fullPath = $this->rootDir . DIRECTORY_SEPARATOR . $path;
-
-        if (!is_dir($fullPath)) {
-            fwrite(STDERR, sprintf("%s is not a directory. Creating...\n", $fullPath));
-            mkdir($fullPath, 0644, true);
-            if (!is_dir($fullPath)) {
-                fwrite(STDERR, sprintf("Could not create %s. Skipping.\n", $fullPath));
-                return;
+            if ($repo !== null) {
+                $repos[] = $repo;
             }
         }
+        return null;
+    }
 
-        fwrite(STDOUT, sprintf("\n----------\nProcessing %s...\n", $dir));
-
-        if ('clone' === $action) {
-            $this->cloneRepo($fullPath, $dir, $path);
-        } elseif ('sync' === $action) {
-            $this->syncRepo($fullPath);
+    /**
+     * Attempt to create the directory if it doesn't already exist
+     *
+     * @param string $dir
+     * @return boolean False if the directory could not be created
+     */
+    protected function createDir($dir)
+    {
+        if (!is_dir($dir)) {
+            fwrite(STDERR, sprintf("%s is not a directory. Creating...\n", $dir));
+            mkdir($dir, 0644, true);
+            if (!is_dir($dir)) {
+                fwrite(STDERR, sprintf("Could not create %s. Skipping.\n", $dir));
+                return false;
+            }
         }
-        $this->cleanup($dir);
-    }
-
-    /**
-     * Clone an SVN repo into a git repo
-     *
-     * @param string $dir The directory to execute the command under
-     * @param string $subdir The subdirectory to use for the repository
-     * @param string $path The path within the SVN URL to clone from
-     * @return int The return status of executing the command
-     */
-    protected function cloneRepo($dir, $subdir, $path = null)
-    {
-        $status = 0;
-        chdir($dir);
-
-        system(
-            sprintf(
-                'git svn clone --stdlayout --authors-file=%s %s %s',
-                escapeshellarg($this->authorsFile),
-                escapeshellarg($this->svnUrl . str_replace('\\', '/', $path) . $subdir),
-                escapeshellarg($subdir)
-            ),
-            $status
-        );
-        return $status;
-    }
-
-    /**
-     * Sync the git repo with its SVN equivalent
-     *
-     * @param string $dir The directory to execute the command under
-     * @return int The return status of executing the command
-     */
-    protected function syncRepo($dir)
-    {
-        $status = 0;
-        chdir($dir);
-
-        system(
-            sprintf(
-                'git svn fetch --authors-file=%s',
-                escapeshellarg($this->authorsFile)
-            ),
-            $status
-        );
-
-        system(
-            sprintf(
-                'java -Dfile.encoding=utf-8 -jar %s sync-rebase',
-                escapeshellarg($this->migrationLib)
-            ),
-            $status
-        );
-        return $status;
-    }
-
-    /**
-     * Cleanup tags and branches in the git repo
-     *
-     * @param string $dir The directory to execute the command under
-     * @return int The return status of executing the command
-     */
-    protected function cleanup($dir)
-    {
-        $status = 0;
-        chdir($dir);
-
-        system(
-            sprintf(
-                'java -Dfile.encoding=utf-8 -jar %s clean-git --force',
-                escapeshellarg($this->migrationLib)
-            ),
-            $status
-        );
-        return $status;
+        return true;
     }
 }
