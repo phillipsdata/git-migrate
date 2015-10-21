@@ -1,6 +1,7 @@
 #!/usr/bin/env php
 <?php
-require getcwd() . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'autoload.php';
+require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR
+    . '..' . DIRECTORY_SEPARATOR . 'autoload.php';
 
 use PhillipsData\GitMigrate\GitMigrate;
 use PhillipsData\GitMigrate\Config;
