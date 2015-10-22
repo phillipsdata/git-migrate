@@ -28,7 +28,40 @@ You'll also need to ensure you have a somewhat modern version of java as well.
 composer require phillipsdata/git-migrate
 ```
 
-### 2. Create your items config
+### 2. Create your config
+
+The config is a JSON file that represents the repositories that you wish to operate on,
+as well as any other options that are available as parameters to the `git-migrate` utility.
+
+It looks like this:
+
+```js
+{
+  "repositories": [
+    {
+      "path": "my-external-dir/another-dir/repo1",
+      "origin": "https://domain.com/repo1.git"
+    },
+    {
+      "path": "my-external-dir/another-dir/repo2"
+    }
+  ],
+  "authors": "/path/to/authors.txt",
+  "dir": "/path/to/",
+  "javalib": "/path/to/svn-migration-scripts.jar",
+  "url": "svn://svn.yourdomain.com/"
+}
+```
+
+Each repository's **path** is a URI of the **url** option specified.
+
+Notice how our repo2 has no origin. The **origin** is optional for all repositories.
+Setting an origin allows us to `push` the repository to that remote repository using the `--push` flag.
+
+See the **Options** section for an explanation of the various other options.
+
+
+#### Items File (deprecated)
 
 The items config is a file that returns the directory structure of individual repositories.
 If you're simply migrating a single repository that might look like:
@@ -61,6 +94,9 @@ return [
 
 ```
 
+This method is deprecated in favor of specifying the repositories using the JSON
+config file described above.
+
 ### 3. Run the migration
 
 This will create a Git repository from your SVN repository, cloning your trunk,
@@ -71,36 +107,37 @@ you'll need to adjust the **url** accordingly. I suggest running the migration
 for your main repository separately from your externals.
 
 ```sh
-vendor/bin/git-migrate
-  --items /path/to/items.php
-  --dir /path/to/
-  --authors /path/to/authors.txt
-  --url svn://svn.yourdomain.com/
-  --javalib /path/to/svn-migration-scripts.jar
+vendor/bin/git-migrate --config=/path/to/config.json
 ```
 
 ### 4. Keeping it in sync
 
 While you're making the transition from SVN to Git, you'll only be able to make
 commits to your SVN repository, so you'll need some way to keep the repositories
-in sync. You can do this with the **--sync** flag. You supply all of the same
-arguments as you would for an initial migration, but append the **--sync** flag.
+in sync. You can do this by appending the `--sync` flag.
 
 ```sh
-vendor/bin/git-migrate
-  --items /path/to/items.php
-  --dir /path/to/
-  --authors /path/to/authors.txt
-  --url svn://svn.yourdomain.com/
-  --javalib /path/to/svn-migration-scripts.jar
-  --sync
+vendor/bin/git-migrate --config=/path/to/config.json --sync
+```
+
+### 5. Pushing to a remote origin
+
+The final step in migrating to Git is sharing your repository. You do this by
+pushing it to a remote repository with the `--push` flag (be sure you've defined
+the origin for each repository in your config you wish to push).
+
+```sh
+vendor/bin/git-migrate --config=/path/to/config.json --push
 ```
 
 ## Options
 
-- **items** The path to your items config.
+- **config** The JSON file to use for setting the configurable options.
+- **items** The path to your items config (deprecated, use **config**).
 - **dir** The full system path where the Git repositories should be created.
 - **authors** The full system path to the authors file. See [Atlassian's migration guide](https://www.atlassian.com/git/tutorials/migrating-prepare).
-- **url** The URL to your SVN repository.
+- **url** The URL to your Subversion repository.
 - **javalib** The full system path to [Atlassian's svn-migration-scripts.jar](https://bitbucket.org/atlassian/svn-migration-scripts/downloads) file.
-- **sync** Set if you need to update an existing Git repository it with commits from the SVN repository
+- **clone** Set if you want to clone the Subversion repositories into Git repositories (**default**).
+- **sync** Set if you need to update the existing Git repositories with commits from their Subversion repository.
+- **push** Set if you want to push the existing Git repositories to their remote origins.

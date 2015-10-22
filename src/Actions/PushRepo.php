@@ -35,8 +35,12 @@ class PushRepo implements ActionInterface
      */
     public function process()
     {
-        fwrite(STDOUT, sprintf("\n----------\Pushing %s to %s...\n", basename($this->dir), $this->originUrl));
+        fwrite(STDOUT, sprintf("\n----------\nPushing %s to %s...\n", basename($this->dir), $this->originUrl));
         $status = 0;
+        if (empty($this->originUrl)) {
+            fwrite(STDOUT, sprintf("No origin URL given, skipping.\n"));
+            return $status;
+        }
         chdir($this->dir);
 
         system(

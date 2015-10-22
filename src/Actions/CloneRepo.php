@@ -63,7 +63,7 @@ class CloneRepo implements ActionInterface
     {
         fwrite(STDOUT, sprintf("\n----------\nCloning %s...\n", basename($this->dir)));
         $status = 0;
-        chdir($this->dir);
+        chdir(dirname($this->dir));
 
         system(
             sprintf(

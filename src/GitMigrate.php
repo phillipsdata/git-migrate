@@ -82,7 +82,8 @@ class GitMigrate
     public function processRepositories(array $repos, $action = 'clone')
     {
         foreach ($repos as $repo) {
-            $fullPath = $this->rootDir . DIRECTORY_SEPARATOR . $repo->path;
+            $fullPath = $this->rootDir . DIRECTORY_SEPARATOR
+                . str_replace('/', DIRECTORY_SEPARATOR, $repo->path);
             if (!$this->createDir($fullPath)) {
                 continue;
             }

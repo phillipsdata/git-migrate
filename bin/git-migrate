@@ -15,6 +15,7 @@ $opts = getopt(
         'url:',
         'javalib:',
         'sync::',
+        'push::',
         'config::'
     ]
 );
@@ -52,7 +53,11 @@ if (!empty($opts['items'])) {
     $config->set('repositories', $repos);
 }
 
-var_dump($config->getAll());
-die;
+$action = 'clone';
+if (array_key_exists('sync', $opts)) {
+    $action = 'sync';
+} elseif (array_key_exists('push', $opts)) {
+    $action = 'push';
+}
 
-$migrate->processRepositories($config->get('repositories'));
+$migrate->processRepositories($config->get('repositories'), $action);
