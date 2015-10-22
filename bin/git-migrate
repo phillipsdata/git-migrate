@@ -1,51 +1,63 @@
 #!/usr/bin/env php
 <?php
-require_once dirname(__FILE__) . '/../src/GitMigrate.php';
+require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR
+    . '..' . DIRECTORY_SEPARATOR . 'autoload.php';
 
 use PhillipsData\GitMigrate\GitMigrate;
+use PhillipsData\GitMigrate\Config;
 
-$defaults = array(
-    'items' => null,
-    'dir' => null,
-    'authors' => null,
-    'url' => null,
-    'javalib' => null
-);
-$opts = array_merge(
-    $defaults,
-    getopt(
-        null,
-        array(
-            'items:',
-            'dir:',
-            'authors:',
-            'url:',
-            'javalib:',
-            'sync::'
-        )
-    )
+$opts = getopt(
+    null,
+    [
+        'items:',
+        'dir:',
+        'authors:',
+        'url:',
+        'javalib:',
+        'sync::',
+        'push::',
+        'config::'
+    ]
 );
 
-$items = array();
-if (file_exists($opts['items'])) {
-    $items = require $opts['items'];
+$config = new Config();
+// Load config if present
+if (!empty($opts['config'])) {
+    $config->load($opts['config']);
+}
+
+// Override/set misc options
+foreach ($opts as $key => $value) {
+    if ($key === 'config' || $key === 'items') {
+        continue;
+    }
+    $config->set($key, $value);
 }
 
 $migrate = new GitMigrate(
-    $opts['dir'],
-    $opts['authors'],
-    $opts['url'],
-    $opts['javalib']
+    $config->get('dir'),
+    $config->get('authors'),
+    $config->get('url'),
+    $config->get('javalib')
 );
-foreach ($items as $path => $item) {
-    if (is_int($path)) {
-        $path = null;
+
+// Backwards compatible conversion of items to repositories
+if (!empty($opts['items'])) {
+    $items = [];
+    if (file_exists($opts['items'])) {
+        $items = require $opts['items'];
     }
-    $migrate->process(
-        $item,
-        $path,
-        array_key_exists('sync', $opts)
-        ? 'sync'
-        : 'clone'
-    );
+
+    $repos = [];
+    $migrate->convertToRepos($items, $config->get('dir'), $repos);
+    $config->set('repositories', $repos);
 }
+
+$action = 'clone';
+if (array_key_exists('sync', $opts)) {
+    $action = 'sync';
+} elseif (array_key_exists('push', $opts)) {
+    $action = 'push';
+}
+
+$migrate->processRepositories($config->get('repositories'), $action);
