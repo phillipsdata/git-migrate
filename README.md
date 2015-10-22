@@ -1,5 +1,7 @@
 # Git Migrate
 
+[![Build Status](https://travis-ci.org/phillipsdata/git-migrate.svg)](https://travis-ci.org/phillipsdata/git-migrate) [![Coverage Status](https://coveralls.io/repos/phillipsdata/git-migrate/badge.svg?branch=master&service=github)](https://coveralls.io/github/phillipsdata/git-migrate?branch=master)
+
 A utility for migrating from SVN to Git.
 
 Uses [Atlassian's svn-migration-scripts](https://bitbucket.org/atlassian/svn-migration-scripts/downloads)
